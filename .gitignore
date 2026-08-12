@@ -1,0 +1,32 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Datos
+data/raw/
+data/processed/
+data/external/
+
+# Salida y resultados
+outputs/
+results/
+models/
+*.pt
+*.pth
+*.h5
+*.pkl
+*.joblib
+
+# Cachés de Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Python y editores
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
