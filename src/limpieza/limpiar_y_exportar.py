@@ -18,7 +18,6 @@ df_hipotesis   = pd.read_excel(excel, sheet_name='HIPOTESIS')
 df_diccionario = pd.read_excel(excel, sheet_name='DICCIONARIO')
 
 # --- 2. FUNCIONES AUXILIARES ROBUSTAS ---
-# Eliminar espacios innecesarios en los nombres de columnas
 df_siniestros.columns  = df_siniestros.columns.str.strip()
 df_actores.columns     = df_actores.columns.str.strip()
 df_vehiculos.columns   = df_vehiculos.columns.str.strip()
@@ -27,15 +26,11 @@ df_diccionario.columns = df_diccionario.columns.str.strip()
 
 def resolver_columna(df, posibles_nombres):
     """Busca una columna en el DataFrame tolerando variaciones de Ñ/N y mayúsculas."""
-    for col in posibles_nombres:
-        if col in df.columns:
-            return col
-    # Búsqueda flexible (sin Ñ, sin espacios)
-    for c in df.columns:
-        c_clean = c.strip().upper().replace('Ñ', 'N')
+    for col in df.columns:
+        c_clean = col.strip().upper().replace('Ñ', 'N')
         for p in posibles_nombres:
             if p.strip().upper().replace('Ñ', 'N') == c_clean:
-                return c
+                return col
     return None
 
 def obtener_mapa(campo_nombre):
@@ -48,6 +43,15 @@ def obtener_mapa(campo_nombre):
     sub_df = df_diccionario[df_diccionario['CAMPO'].astype(str).str.strip().str.upper().isin(campos_validos)]
     return dict(zip(sub_df['CODIGO'], sub_df['DESCRIPCION']))
 
+def transformar_a_minusculas(df):
+    """Convierte todas las columnas de texto (object/string) a minúsculas y remueve espacios sobrantes."""
+    for col in df.columns:
+        if df[col].dtype == 'object' or pd.api.types.is_string_dtype(df[col]):
+            # Mantener nulos y convertir texto a minúsculas
+            df[col] = df[col].astype(str).str.strip().str.lower()
+            df[col] = df[col].replace('nan', np.nan)
+    return df
+
 
 # ==========================================
 # --- 3. LIMPIEZA HOJA: SINIESTROS ---
@@ -56,7 +60,6 @@ print("Limpiando hoja SINIESTROS...")
 df_siniestros['FECHA'] = pd.to_datetime(df_siniestros['FECHA'], errors='coerce')
 df_siniestros['HORA_NUM'] = pd.to_datetime(df_siniestros['HORA'].astype(str), format='%H:%M:%S', errors='coerce').dt.hour
 
-# Mapeos
 mapa_gravedad = obtener_mapa('GRAVEDAD')
 mapa_clase_sin = obtener_mapa('CLASE')
 mapa_diseno    = obtener_mapa('DISEÑO_LUGAR')
@@ -74,11 +77,9 @@ if col_diseno:
 df_siniestros['CHOQUE_DESC']      = df_siniestros['CHOQUE'].map(mapa_choque)
 df_siniestros['OBJETO_FIJO_DESC'] = df_siniestros['OBJETO_FIJO'].map(mapa_objeto)
 
-# Reglas de Negocio Siniestros:
-# 1. Si CHOQUE != 4, los vacíos en OBJETO_FIJO son justificados.
-df_siniestros.loc[(df_siniestros['CHOQUE'] != 4) & (df_siniestros['OBJETO_FIJO'].isna()), 'OBJETO_FIJO_DESC'] = 'NO APLICA (NO ES OBJETO FIJO)'
-# 2. Si CHOQUE == 4, DEBE haber un OBJETO_FIJO. Si no lo hay, es un error.
-df_siniestros.loc[(df_siniestros['CHOQUE'] == 4) & (df_siniestros['OBJETO_FIJO'].isna()), 'OBJETO_FIJO_DESC'] = 'ERROR: FALTA DATO DE OBJETO'
+# Reglas de negocio
+df_siniestros.loc[(df_siniestros['CHOQUE'] != 4) & (df_siniestros['OBJETO_FIJO'].isna()), 'OBJETO_FIJO_DESC'] = 'no aplica (no es objeto fijo)'
+df_siniestros.loc[(df_siniestros['CHOQUE'] == 4) & (df_siniestros['OBJETO_FIJO'].isna()), 'OBJETO_FIJO_DESC'] = 'error: falta dato de objeto'
 
 
 # ==========================================
@@ -94,12 +95,10 @@ mapa_estado    = obtener_mapa('ESTADO')
 df_actores['CONDICION_DESC'] = df_actores['CONDICION'].map(mapa_condicion)
 df_actores['ESTADO_DESC']    = df_actores['ESTADO'].map(mapa_estado)
 
-# Reglas de Negocio Actor Vial:
-# a. Si la condición es PEATON, no hay vehículo.
+# Reglas de negocio
 es_peaton = df_actores['CONDICION_DESC'].astype(str).str.upper().str.contains('PEATON', na=False)
-df_actores.loc[es_peaton & df_actores['VEHICULO'].isna(), 'VEHICULO'] = 'NO APLICA (PEATON)'
-# b. Si está vacío y NO es peatón, es un dato faltante a revisar.
-df_actores['VEHICULO'] = df_actores['VEHICULO'].fillna('SIN INFORMACION (REVISAR)')
+df_actores.loc[es_peaton & df_actores['VEHICULO'].isna(), 'VEHICULO'] = 'no aplica (peaton)'
+df_actores['VEHICULO'] = df_actores['VEHICULO'].fillna('sin informacion (revisar)')
 
 
 # ==========================================
@@ -107,8 +106,6 @@ df_actores['VEHICULO'] = df_actores['VEHICULO'].fillna('SIN INFORMACION (REVISAR
 # ==========================================
 print("Limpiando hoja VEHICULOS...")
 df_vehiculos['FECHA'] = pd.to_datetime(df_vehiculos['FECHA'], errors='coerce')
-
-# Falsos nulos: 0 en SERVICIO
 df_vehiculos['SERVICIO'] = df_vehiculos['SERVICIO'].replace(0, np.nan)
 
 mapa_clase_veh = obtener_mapa('CLASE')
@@ -119,21 +116,18 @@ df_vehiculos['CLASE_DESC']     = df_vehiculos['CLASE'].map(mapa_clase_veh)
 df_vehiculos['SERVICIO_DESC']  = df_vehiculos['SERVICIO'].map(mapa_servicio)
 df_vehiculos['MODALIDAD_DESC'] = df_vehiculos['MODALIDAD'].map(mapa_modalidad)
 
-# Reglas de Negocio Vehículos:
-# 1. CLASE: Vacíos cuando ENFUGA == 'S'
+# Reglas de negocio
 fuga_si = df_vehiculos['ENFUGA'] == 'S'
-df_vehiculos.loc[fuga_si & df_vehiculos['CLASE'].isna(), 'CLASE_DESC'] = 'NO IDENTIFICADO (FUGA)'
-df_vehiculos.loc[(~fuga_si) & df_vehiculos['CLASE'].isna(), 'CLASE_DESC'] = 'SIN INFORMACION (REVISAR)'
+df_vehiculos.loc[fuga_si & df_vehiculos['CLASE'].isna(), 'CLASE_DESC'] = 'no identificado (fuga)'
+df_vehiculos.loc[(~fuga_si) & df_vehiculos['CLASE'].isna(), 'CLASE_DESC'] = 'sin informacion (revisar)'
 
-# 2. SERVICIO: Vacíos cuando CLASE == 13 (Bicicleta)
 es_bici = df_vehiculos['CLASE'] == 13
-df_vehiculos.loc[es_bici & df_vehiculos['SERVICIO'].isna(), 'SERVICIO_DESC'] = 'NO APLICA (BICICLETA)'
-df_vehiculos.loc[(~es_bici) & df_vehiculos['SERVICIO'].isna(), 'SERVICIO_DESC'] = 'SIN INFORMACION (REVISAR)'
+df_vehiculos.loc[es_bici & df_vehiculos['SERVICIO'].isna(), 'SERVICIO_DESC'] = 'no aplica (bicicleta)'
+df_vehiculos.loc[(~es_bici) & df_vehiculos['SERVICIO'].isna(), 'SERVICIO_DESC'] = 'sin informacion (revisar)'
 
-# 3. MODALIDAD: Vacíos cuando SERVICIO != 2 (Público)
 es_publico = df_vehiculos['SERVICIO'] == 2
-df_vehiculos.loc[(~es_publico) & df_vehiculos['MODALIDAD'].isna(), 'MODALIDAD_DESC'] = 'NO APLICA (NO ES PUBLICO)'
-df_vehiculos.loc[es_publico & df_vehiculos['MODALIDAD'].isna(), 'MODALIDAD_DESC'] = 'SIN INFORMACION (REVISAR)'
+df_vehiculos.loc[(~es_publico) & df_vehiculos['MODALIDAD'].isna(), 'MODALIDAD_DESC'] = 'no aplica (no es publico)'
+df_vehiculos.loc[es_publico & df_vehiculos['MODALIDAD'].isna(), 'MODALIDAD_DESC'] = 'sin informacion (revisar)'
 
 
 # ==========================================
@@ -146,12 +140,36 @@ df_hipotesis['CAUSA_DESC'] = df_hipotesis['CODIGO_CAUSA'].map(mapa_causa)
 
 
 # ==========================================
-# --- 7. EXPORTAR DATOS LIMPIOS ---
+# --- 7. APALANCAR TRANSFORMAR A MINÚSCULAS ---
 # ==========================================
-print("\nExportando archivos limpios a data/processed/...")
+print("\nTransformando todos los textos a minúsculas...")
+df_siniestros = transformar_a_minusculas(df_siniestros)
+df_actores    = transformar_a_minusculas(df_actores)
+df_vehiculos  = transformar_a_minusculas(df_vehiculos)
+df_hipotesis  = transformar_a_minusculas(df_hipotesis)
+
+
+# ==========================================
+# --- 8. EXPORTAR ARCHIVOS CSV Y CONSOLIDADO EXCEL ---
+# ==========================================
+print("\nExportando archivos CSV limpios a data/processed/...")
 df_siniestros.to_csv(os.path.join(CARPETA_PROCESSED, "siniestros_limpio.csv"), index=False)
 df_actores.to_csv(os.path.join(CARPETA_PROCESSED, "actores_limpio.csv"), index=False)
 df_vehiculos.to_csv(os.path.join(CARPETA_PROCESSED, "vehiculos_limpio.csv"), index=False)
 df_hipotesis.to_csv(os.path.join(CARPETA_PROCESSED, "hipotesis_limpio.csv"), index=False)
 
-print("\n¡Proceso de limpieza completado con éxito!")
+# Exportación automática a Excel consolidado
+CARPETA_OUTPUTS = "../../outputs/"
+os.makedirs(CARPETA_OUTPUTS, exist_ok=True)
+RUTA_EXCEL_LIMPIO = os.path.join(CARPETA_OUTPUTS, "registro_accidentes_limpio.xlsx")
+
+print("Generando el archivo Excel consolidado en minúsculas...")
+with pd.ExcelWriter(RUTA_EXCEL_LIMPIO, engine='openpyxl') as writer:
+    df_siniestros.to_excel(writer, sheet_name='SINIESTROS', index=False)
+    df_actores.to_excel(writer, sheet_name='ACTOR_VIAL', index=False)
+    df_vehiculos.to_excel(writer, sheet_name='VEHICULOS', index=False)
+    df_hipotesis.to_excel(writer, sheet_name='HIPOTESIS', index=False)
+
+print(f"\n¡Proceso completado con éxito!")
+print(f"-> Archivos CSV actualizados en: {CARPETA_PROCESSED}")
+print(f"-> Excel consolidado listo en: {RUTA_EXCEL_LIMPIO}")
