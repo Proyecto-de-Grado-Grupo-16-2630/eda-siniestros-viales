@@ -43,6 +43,11 @@ def obtener_mapa(campo_nombre):
     sub_df = df_diccionario[df_diccionario['CAMPO'].astype(str).str.strip().str.upper().isin(campos_validos)]
     return dict(zip(sub_df['CODIGO'], sub_df['DESCRIPCION']))
 
+def limpiar_columna_fecha(series_fecha):
+    """Convierte la fecha de forma flexible evitando borrados y elimina el timestamp 00:00:00."""
+    fechas_dt = pd.to_datetime(series_fecha, errors='coerce', dayfirst=True, format='mixed')
+    return fechas_dt.dt.strftime('%Y-%m-%d')
+
 def transformar_a_minusculas(df):
     """Convierte todas las columnas de texto (object/string) a minúsculas y remueve espacios sobrantes."""
     for col in df.columns:
@@ -55,9 +60,9 @@ def transformar_a_minusculas(df):
 
 # ==========================================
 # --- 3. LIMPIEZA HOJA: SINIESTROS ---
-# ==========================================
+# ==========================================   
 print("Limpiando hoja SINIESTROS...")
-df_siniestros['FECHA'] = pd.to_datetime(df_siniestros['FECHA'], errors='coerce')
+df_siniestros['FECHA'] = limpiar_columna_fecha(df_siniestros['FECHA'])
 df_siniestros['HORA_NUM'] = pd.to_datetime(df_siniestros['HORA'].astype(str), format='%H:%M:%S', errors='coerce').dt.hour
 
 mapa_gravedad = obtener_mapa('GRAVEDAD')
@@ -86,7 +91,7 @@ df_siniestros.loc[(df_siniestros['CHOQUE'] == 4) & (df_siniestros['OBJETO_FIJO']
 # --- 4. LIMPIEZA HOJA: ACTOR_VIAL ---
 # ==========================================
 print("Limpiando hoja ACTOR_VIAL...")
-df_actores['FECHA'] = pd.to_datetime(df_actores['FECHA'], errors='coerce')
+df_actores['FECHA'] = limpiar_columna_fecha(df_actores['FECHA'])
 df_actores['EDAD']  = pd.to_numeric(df_actores['EDAD'], errors='coerce')
 
 mapa_condicion = obtener_mapa('CONDICION')
@@ -105,7 +110,7 @@ df_actores['VEHICULO'] = df_actores['VEHICULO'].fillna('sin informacion (revisar
 # --- 5. LIMPIEZA HOJA: VEHICULOS ---
 # ==========================================
 print("Limpiando hoja VEHICULOS...")
-df_vehiculos['FECHA'] = pd.to_datetime(df_vehiculos['FECHA'], errors='coerce')
+df_vehiculos['FECHA'] = limpiar_columna_fecha(df_vehiculos['FECHA'])
 df_vehiculos['SERVICIO'] = df_vehiculos['SERVICIO'].replace(0, np.nan)
 
 mapa_clase_veh = obtener_mapa('CLASE')
@@ -134,7 +139,7 @@ df_vehiculos.loc[es_publico & df_vehiculos['MODALIDAD'].isna(), 'MODALIDAD_DESC'
 # --- 6. LIMPIEZA HOJA: HIPOTESIS ---
 # ==========================================
 print("Limpiando hoja HIPOTESIS...")
-df_hipotesis['FECHA'] = pd.to_datetime(df_hipotesis['FECHA'], errors='coerce')
+df_hipotesis['FECHA'] = limpiar_columna_fecha(df_hipotesis['FECHA'])
 mapa_causa = obtener_mapa('CODIGO_CAUSA')
 df_hipotesis['CAUSA_DESC'] = df_hipotesis['CODIGO_CAUSA'].map(mapa_causa)
 
