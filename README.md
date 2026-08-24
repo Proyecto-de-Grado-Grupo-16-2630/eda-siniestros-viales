@@ -1,52 +1,71 @@
-# Análisis Exploratorio de Datos (EDA) y Limpieza de Siniestros Viales
+# Pipeline de Analítica, Limpieza, Preparación de Datos y Modelado de Siniestros Viales
 
-Este proyecto contiene herramientas en Python para cargar, analizar, limpiar, verificar y consolidar los datos de accidentes y siniestros viales a partir del registro histórico del dataset (`registro_accidentes.xlsx`). 
+Este proyecto contiene una solución integral en Python para el procesamiento, análisis exploratorio de datos (EDA), limpieza estructurada, ingeniería de características (Feature Engineering) y modelado predictivo a partir del registro histórico de accidentes de tránsito (`registro_accidentes.xlsx`).
 
-El objetivo principal es estructurar y limpiar los datos crudos siguiendo reglas de negocio definidas, transformando códigos categóricos en descripciones legibles (mediante diccionarios de datos) y resolviendo inconsistencias lógicas en los registros.
+El objetivo principal abarca desde la transformación de datos crudos hasta la construcción de vistas minables tabulares y datasets optimizados para Machine Learning, finalizando con la evaluación preliminar de modelos de gravedad de siniestros viales.
 
 ---
 
 ## Estructura del Proyecto
 
-La organización de archivos en el espacio de trabajo es la siguiente:
+La organización completa de carpetas y módulos en el espacio de trabajo es la siguiente:
 
 ```text
+.
 ├── data/
-│   ├── raw/                  # Archivos Excel originales sin procesar
+│   ├── raw/                              # Dataset original en formato Excel
 │   │   └── registro_accidentes.xlsx
-│   └── processed/            # Archivos CSV intermedios generados tras la limpieza
-│       ├── siniestros_limpio.csv
-│       ├── actores_limpio.csv
-│       ├── vehiculos_limpio.csv
-│       └── hipotesis_limpio.csv
+│   └── processed/                        # Datasets procesados y vistas minables
+│       ├── siniestros_limpio.csv         # Tabla de siniestros limpia
+│       ├── actores_limpio.csv            # Tabla de actores viales limpia
+│       ├── vehiculos_limpio.csv          # Tabla de vehículos limpia
+│       ├── hipotesis_limpio.csv           # Tabla de causas e hipótesis limpia
+│       ├── vista_minable_accidente.tsv   # Consolidado relacional por accidente
+│       └── dataset_listo_para_ml.tsv     # Dataset codificado y escalado para ML
 ├── src/
-│   ├── exploracion/          # Módulo de análisis exploratorio inicial
-│   │   └── cargar_y_analizar_nulos.py
-│   └── limpieza/             # Módulo de limpieza, validación y consolidación
-│       ├── consolidar_excel.py
-│       ├── limpiar_y_exportar.py
-│       └── verificar_limpieza.py
-├── outputs/                  # Reportes de texto y gráficos de calidad de datos
+│   ├── exploracion/                      # Módulo de Análisis Exploratorio (EDA)
+│   │   ├── cargar_y_analizar_nulos.py    # Diagnóstico inicial de nulos en raw
+│   │   ├── auditoria_faltantes_post_limpieza.py # Auditoría post-limpieza de nulos
+│   │   ├── histogramas_y_distribuciones.py      # Análisis de edades, horas pico y gravedad
+│   │   └── analisis_bivariado_y_cruces.py       # Cruces de gravedad vs actores/franjas y causas
+│   ├── limpieza/                         # Módulo de Limpieza y Reglas de Negocio
+│   │   ├── limpiar_y_exportar.py         # Mapeos categóricos y corrección de nulos
+│   │   ├── verificar_limpieza.py         # Verificación lógica de integridad
+│   │   └── consolidar_excel.py           # Generación del archivo Excel consolidado
+│   ├── preparacion/                      # Módulo de Feature Engineering y ML Ready
+│   │   ├── crear_vista_minable_accidente.py # Ensamble relacional nivel accidente
+│   │   ├── auditoria_vista_minable.py    # Inspección de tipos y nulos pre-modelado
+│   │   └── preparar_dataset_ml.py        # Encoding (n-1), Min-Max Scaling y Target
+│   └── modelado/                         # Módulo de Modelado Predictivo
+│       └── regresion_lineal_preliminar.py# Modelo Baseline de Regresión Lineal
+├── outputs/                              # Reportes, gráficos y datasets exportados
 │   ├── reporte_inicial_nulos.txt
 │   ├── reporte_verificacion_limpieza.txt
-│   ├── registro_accidentes_limpio.xlsx (Archivo final de Excel limpio)
-│   └── faltantes_*.png       # Gráficos de barras que visualizan nulos por hoja
-├── requirements.txt          # Dependencias necesarias del proyecto
-└── README.md                 # Documentación del proyecto (este archivo)
+│   ├── reporte_auditoria_faltantes.txt
+│   ├── reporte_histogramas_distribuciones.txt
+│   ├── reporte_analisis_bivariado.txt
+│   ├── reporte_regresion_lineal.txt
+│   ├── registro_accidentes_limpio.xlsx   # Archivo Excel multi-hoja limpio final
+│   ├── vista_minable_accidente.txt       # Copia en formato TXT tabulado
+│   ├── dataset_listo_para_ml.txt         # Copia en formato TXT tabulado
+│   └── *.png                             # Visualizaciones y gráficos explicativos
+├── requirements.txt                      # Dependencias del entorno
+└── README.md                             # Documentación del proyecto
 ```
 
 ---
 
 ## Instalación y Requisitos
 
-Este proyecto requiere **Python 3.8+** y las siguientes dependencias:
-- `pandas` y `openpyxl` (manipulación de datos y lectura/escritura de Excel)
-- `matplotlib` y `seaborn` (generación de gráficos del análisis exploratorio)
-- `missingno` (visualización opcional de valores perdidos)
+El proyecto requiere **Python 3.8+** y las dependencias especificadas en [requirements.txt](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/requirements.txt):
+- `pandas` y `openpyxl` (manipulación de estructuras de datos y lectura/escritura de Excel/CSV/TSV)
+- `matplotlib` y `seaborn` (generación de dashboards y gráficos de calidad y distribuciones)
+- `missingno` (diagnóstico visual de ausencia de datos)
+- `scikit-learn` (división de datasets, preprocesamiento y entrenamiento de modelos ML)
 
-Para preparar el entorno local, ejecute los siguientes comandos en su terminal:
+### Configuración del Entorno Virtual:
 
-1. **Crear entorno virtual (opcional pero recomendado):**
+1. **Crear y activar el entorno virtual:**
    ```bash
    python -m venv .venv
    .venv\Scripts\activate      # En Windows (CMD/PowerShell)
@@ -60,70 +79,91 @@ Para preparar el entorno local, ejecute los siguientes comandos en su terminal:
 
 ---
 
-## Flujo de Ejecución del Proyecto
+## Flujo de Ejecución del Pipeline
 
-El proceso completo se ejecuta de forma secuencial a través de los siguientes scripts en la carpeta [src/](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src):
+El pipeline metodológico del proyecto se divide en 5 fases secuenciales:
 
-### 1. Análisis Exploratorio Inicial y Diagnóstico de Nulos
-Ejecute el script [cargar_y_analizar_nulos.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/exploracion/cargar_y_analizar_nulos.py) para analizar el volumen de valores nulos (NaN) en el archivo original:
+### Fase 1: Diagnóstico Exploratorio Inicial de Nulos
+Ejecute el script [cargar_y_analizar_nulos.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/exploracion/cargar_y_analizar_nulos.py) para evaluar los valores faltantes en el dataset bruto:
 ```bash
 python src/exploracion/cargar_y_analizar_nulos.py
 ```
-* **Salida:** Genera un archivo con estadísticas detalladas en `outputs/reporte_inicial_nulos.txt` y gráficos de diagnóstico en formato `.png` para cada pestaña del Excel original que contenga valores nulos.
+* **Salidas:** Genera estadísticas en `outputs/reporte_inicial_nulos.txt` y diagramas de nulos por hoja en `outputs/faltantes_*.png`.
 
-### 2. Limpieza de Datos y Aplicación de Reglas de Negocio
-Ejecute el script [limpiar_y_exportar.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/limpieza/limpiar_y_exportar.py) para mapear códigos categóricos del diccionario, resolver nulos inconsistentes y procesar fechas:
+### Fase 2: Limpieza y Reglas de Negocio
+Ejecute los scripts del módulo [src/limpieza/](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/limpieza):
 ```bash
+# 1. Aplicar mapeos categóricos, tratamiento de nulos y exportar CSVs limpios
 python src/limpieza/limpiar_y_exportar.py
-```
-* **Salida:** Genera los archivos limpios individuales en formato CSV dentro de la carpeta `data/processed/`.
 
-### 3. Verificación de Reglas y Calidad
-Ejecute el script [verificar_limpieza.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/limpieza/verificar_limpieza.py) para evaluar la integridad física de los datos limpios:
-```bash
+# 2. Verificar la calidad e integridad lógica de la limpieza
 python src/limpieza/verificar_limpieza.py
-```
-* **Salida:** Muestra resúmenes de conteos de filas en consola y guarda la verificación lógica detallada en `outputs/reporte_verificacion_limpieza.txt`.
 
-### 4. Consolidación Final del Dataset
-Ejecute el script [consolidar_excel.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/limpieza/consolidar_excel.py) para empaquetar los CSV limpios e individuales de `data/processed/` en un único archivo de Excel final con varias hojas:
-```bash
+# 3. Consolidar los CSVs limpios en un único archivo de Excel
 python src/limpieza/consolidar_excel.py
 ```
-* **Salida:** Genera el archivo Excel limpio consolidador en `outputs/registro_accidentes_limpio.xlsx`.
+* **Salidas:** CSVs individuales en `data/processed/`, reporte `outputs/reporte_verificacion_limpieza.txt` y el archivo Excel final `outputs/registro_accidentes_limpio.xlsx`.
+
+### Fase 3: Análisis Exploratorio Avanzado (EDA Post-Limpieza)
+Ejecute los scripts de visualización y análisis estadístico en [src/exploracion/](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/exploracion):
+```bash
+# 1. Auditoría de clasificación de nulos post-limpieza (falsos nulos vs justificantes)
+python src/exploracion/auditoria_faltantes_post_limpieza.py
+
+# 2. Distribución de edades, horas pico y severidad de siniestros
+python src/exploracion/histogramas_y_distribuciones.py
+
+# 3. Análisis bivariado y cruces estratégicos (Gravedad vs Actores, Franjas Horarias y Causas)
+python src/exploracion/analisis_bivariado_y_cruces.py
+```
+* **Salidas:** Reportes de texto explicativos (`reporte_auditoria_faltantes.txt`, `reporte_histogramas_distribuciones.txt`, `reporte_analisis_bivariado.txt`) y gráficos de alta resolución (`histograma_edades.png`, `histograma_horas_pico.png`, `distribucion_gravedad.png`, `cruce_gravedad_actor.png`, `cruce_gravedad_franja.png`, `top_10_causas.png`).
+
+### Fase 4: Ensamble de Vista Minable y Dataset para Machine Learning
+Ejecute los scripts de preparación de datos en [src/preparacion/](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/preparacion):
+```bash
+# 1. Construir la vista minable agregando actores, vehículos e hipótesis a nivel de accidente
+python src/preparacion/crear_vista_minable_accidente.py
+
+# 2. Auditar la vista minable preliminar (nulos, tipos de datos y columnas categóricas)
+python src/preparacion/auditoria_vista_minable.py
+
+# 3. Generar el dataset final optimizado para ML (One-Hot Encoding n-1 y Min-Max Scaling)
+python src/preparacion/preparar_dataset_ml.py
+```
+* **Salidas:** Vistas tabuladas `data/processed/vista_minable_accidente.tsv` y `data/processed/dataset_listo_para_ml.tsv` (con copias `.txt` en `outputs/`).
+
+### Fase 5: Modelado Predictivo Baseline
+Ejecute el script del modelo baseline en [src/modelado/](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/modelado):
+```bash
+python src/modelado/regresion_lineal_preliminar.py
+```
+* **Salidas:** Métricas de desempeño ($MSE$, $RMSE$, $MAE$, $R^2$) registradas en `outputs/reporte_regresion_lineal.txt` y gráficos de residuos/evaluación en `outputs/evaluacion_regresion_lineal.png`.
 
 ---
 
-## Reglas de Negocio y Mapeos Aplicados
+## Reglas de Negocio, Transformaciones e Ingeniería de Características
 
-Durante el proceso de limpieza y transformación en [limpiar_y_exportar.py](file:///c:/JAVERIANA_LOCAL/26-30/Proyecto%20de%20grado%20Sistemas/Data%20Set/codigo%20data%20set/src/limpieza/limpiar_y_exportar.py), se aplican reglas de negocio para evitar los falsos nulos o identificar errores de inconsistencia:
+### 1. Limpieza por Pestaña / Entidad
+- **Siniestros:** Mapeo de gravedad, clase, diseño del lugar, tipo de choque y objeto fijo. Clasificación de faltantes en `OBJETO_FIJO` según si el siniestro fue choque contra objeto fijo o no (`NO APLICA` vs `ERROR: FALTA DATO`).
+- **Actores Viales:** Parsing de `EDAD` numérica. Asignación de `NO APLICA (PEATON)` en vehículos cuando el actor es peatón.
+- **Vehículos:** Corrección de códigos `0` en servicio. Mapeo de `NO IDENTIFICADO (FUGA)` cuando el vehículo se da a la fuga, y `NO APLICA (BICICLETA)` / `NO APLICA (NO ES PUBLICO)` para clases o modalidades específicas.
 
-### Hoja: SINIESTROS
-* **Conversión de Fechas y Horas:** Se convierte la columna `FECHA` al tipo datetime y se extrae la hora numérica entera (`HORA_NUM`) desde la columna `HORA`.
-* **Mapeo de Variables Categóricas:** Se crean nuevas columnas descriptivas usando el diccionario de datos: `GRAVEDAD_DESC`, `CLASE_DESC`, `DISENO_LUGAR_DESC`, `CHOQUE_DESC`, y `OBJETO_FIJO_DESC`.
-* **Regla de Choque con Objeto Fijo:**
-  * Si el siniestro **NO** es por choque contra objeto fijo (`CHOQUE != 4`), un nulo en `OBJETO_FIJO` es justificado y se mapea como: `"NO APLICA (NO ES OBJETO FIJO)"`.
-  * Si el siniestro **SÍ** es por choque contra objeto fijo (`CHOQUE == 4`) y la columna `OBJETO_FIJO` está vacía, se cataloga como: `"ERROR: FALTA DATO DE OBJETO"`.
+### 2. Vista Minable a Nivel Accidente
+Integración relacional (`LEFT JOIN`) utilizando la llave primaria del accidente (`codigo_accidente`), incorporando variables agregadas:
+- Conteo total de actores involucrados, edad promedio de los participantes y total de peatones, motociclistas y ciclistas.
+- Conteo total de vehículos, despliegue por clase (automóviles, motos, bicicletas) y bandera booleana/binaria de fuga (`hubo_fuga`).
+- Causalidad principal e hipótesis del siniestro vial.
 
-### Hoja: ACTOR_VIAL
-* **Conversión de Tipos:** Conversión de la columna `EDAD` a un tipo numérico, forzando errores a nulo.
-* **Regla de Condición del Actor:**
-  * Si el actor vial es un peatón (`CONDICION_DESC` contiene la palabra `"PEATON"`), se justifica la falta de código de vehículo mapeándola a `"NO APLICA (PEATON)"`.
-  * Si la celda está vacía y **NO** es un peatón, se marca como `"SIN INFORMACION (REVISAR)"`.
-
-### Hoja: VEHICULOS
-* **Corrección de Falsos Nulos:** Se identifican valores `0` en la columna `SERVICIO` y se convierten a `NaN` para evitar codificaciones erróneas.
-* **Reglas de Clase de Vehículo:**
-  * Si el vehículo se dio a la fuga (`ENFUGA == 'S'`) y no hay información de clase, se clasifica como `"NO IDENTIFICADO (FUGA)"`. Si no hay fuga y falta la clase, se le asigna `"SIN INFORMACION (REVISAR)"`.
-* **Reglas del Servicio y Modalidad:**
-  * Si la clase del vehículo es Bicicleta (`CLASE == 13`), no cuenta con un tipo de servicio de transporte, asignándole `"NO APLICA (BICICLETA)"`.
-  * Si la modalidad de transporte está vacía y el servicio **NO** es Público (`SERVICIO != 2`), se le asigna `"NO APLICA (NO ES PUBLICO)"`.
+### 3. Preprocesamiento para Algoritmos de ML
+- **Variable Target (`target_gravedad`):** Mapeo numérico ordinal (`0: solo daños`, `1: con heridos`, `2: con muertos`).
+- **One-Hot Encoding ($n-1$):** Codificación binaria para variables categóricas (clase, diseño del lugar, choque, objeto fijo), eliminando la primera categoría para evitar multicolinealidad.
+- **Normalización Min-Max ($0$ a $1$):** Reescalamiento de variables numéricas contiguas y discretas (hora, edad promedio, totales de actores/vehículos/hipótesis).
 
 ---
 
-## Entregables y Resultados Generados
+## Resultados y Entregables del Proyecto
 
-- **`outputs/reporte_inicial_nulos.txt`:** Estadísticas iniciales por hoja con el total de filas, columnas y porcentajes exactos de valores faltantes.
-- **`outputs/faltantes_[nombre_hoja].png`:** Gráficos que visualizan las columnas con porcentajes de valores perdidos.
-- **`outputs/reporte_verificacion_limpieza.txt`:** Validación de la consistencia y la cantidad de registros procesados tras aplicar las reglas lógicas de negocio.
-- **`outputs/registro_accidentes_limpio.xlsx`:** El dataset final consolidado para llevar a cabo análisis estadísticos adicionales de siniestralidad.
+1. **Excel Limpio Consolidado:** `outputs/registro_accidentes_limpio.xlsx` con la totalidad de pestañas estructuradas.
+2. **Dataset de Entrada para ML:** `data/processed/dataset_listo_para_ml.tsv` listo para algoritmos de aprendizaje supervisado.
+3. **Reportes de Auditoría e Insights:** Colección de reportes de texto en `outputs/` detallando conteos, nulidad, consistencia lógica y métricas del modelo baseline.
+4. **Visualizaciones de Calidad y Evaluación:** Gráficos `.png` de diagnóstico de nulos, histogramas, análisis bivariados de severidad y evaluación de predicciones del modelo.
