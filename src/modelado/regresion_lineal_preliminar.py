@@ -16,7 +16,7 @@ CARPETA_OUTPUTS   = "../../outputs/"
 RUTA_INPUT_ML    = os.path.join(CARPETA_PROCESSED, "dataset_listo_para_ml.tsv")
 RUTA_REPORTE_TXT = os.path.join(CARPETA_OUTPUTS, "reporte_regresion_lineal.txt")
 
-os.makedirs(CARPETA_OUTPUTS, exist_ok=True)
+os.makedirs(CARPETA_OUTPUTS, exist_ok=True) 
 sns.set_theme(style="whitegrid")
 
 # --- 2. LOGGER DUAL ---
