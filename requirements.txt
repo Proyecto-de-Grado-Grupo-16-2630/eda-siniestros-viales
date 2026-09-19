@@ -3,4 +3,5 @@ openpyxl
 missingno
 matplotlib
 seaborn
-scikit-learn
+scikit-learn
+xgboost
