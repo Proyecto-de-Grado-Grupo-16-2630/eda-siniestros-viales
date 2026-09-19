@@ -37,7 +37,7 @@ logger = DualLogger(RUTA_REPORTE_TXT)
 sys.stdout = logger
 
 print("==================================================")
-print("  FASE 1: CONFIGURACIÓN DE CLASIFICACIÓN MULTICLASE ")
+print("   FASE 1: CONFIGURACIÓN DE CLASIFICACIÓN MULTICLASE ")
 print("==================================================")
 
 # --- 3. CARGA DEL DATASET Y DEFINICIÓN DE ETIQUETAS ---
@@ -66,11 +66,11 @@ for codigo, nombre in MAPA_ETIQUETAS.items():
     pct = (cant / len(y)) * 100
     print(f"   * Clase {codigo} ({nombre}): {cant:,} registros ({pct:.2f}%)")
 
-# --- 4. DIVISIÓN ESTRATIFICADA (80% TRAIN / 20% TEST) ---
-print("\n[2/4] Aplicando división estratificada (Train 80% / Test 20%)...")
+# --- 4. DIVISIÓN ESTRATIFICADA (70% TRAIN / 30% TEST) ---
+print("\n[2/4] Aplicando división estratificada (Train 70% / Test 30%)...")
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, 
-    test_size=0.20, 
+    test_size=0.30, 
     random_state=42, 
     stratify=y
 )
@@ -110,7 +110,7 @@ paquete_datos = {
 joblib.dump(paquete_datos, RUTA_OUTPUT_JOBLIB)
 
 print("\n==================================================")
-print("  ¡FASE 1 FINALIZADA CON ÉXITO!")
+print("  ¡FASE 1 FINALIZADA CON ÉXITO (SPLIT 70/30)!")
 print(f"  Archivo de datos exportado: {RUTA_OUTPUT_JOBLIB}")
 print(f"  Reporte de configuración:   {RUTA_REPORTE_TXT}")
 print("==================================================")
