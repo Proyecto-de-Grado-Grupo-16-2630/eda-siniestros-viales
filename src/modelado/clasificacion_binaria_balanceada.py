@@ -207,4 +207,4 @@ print(f"  Gráficas y Modelos en: {CARPETA_MODELOS}")
 print("==================================================================")
 
 sys.stdout = logger.terminal
-logger.close()
+logger.close()  
