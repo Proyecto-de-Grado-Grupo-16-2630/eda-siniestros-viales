@@ -14,15 +14,26 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score, roc_auc_score, confusion_matrix)
 
 # --- 1. CONFIGURACIÓN DE RUTAS ---
-CARPETA_GEO_OUT = "../../outputs/geo_evaluacion/"
-CARPETA_MODELOS = "../../outputs/modelos_optimizados/"
+CARPETA_PROCESSED = "../../data/processed/"
+CARPETA_GEO_OUT   = "../../outputs/geo_evaluacion/"
+CARPETA_MODELOS   = "../../outputs/modelos_optimizados/"
 
 RUTA_MUESTRA_GEO = os.path.join(CARPETA_GEO_OUT, "muestra_geocodificada_evaluacion.joblib")
+RUTA_SINIESTROS  = os.path.join(CARPETA_PROCESSED, "siniestros_limpio.csv")
 RUTA_CSV_OUT     = os.path.join(CARPETA_GEO_OUT, "resultados_metricas_geocodificados.csv")
 RUTA_GEOJSON_OUT = os.path.join(CARPETA_GEO_OUT, "2500_geocodificados_con_predicciones.geojson")
 RUTA_PRED_CSV    = os.path.join(CARPETA_GEO_OUT, "predicciones_geocodificadas_completas.csv")
 
 sns.set_theme(style="whitegrid")
+
+# Función estandarizada para limpiar y formatear cualquier variante de ID
+def clean_id(val):
+    if val is None or pd.isna(val):
+        return ""
+    s = str(val).strip()
+    if '.' in s:
+        s = s.split('.')[0]
+    return s.strip()
 
 print("==================================================================")
 print("  FASE 3 Y 4: INFERENCIA, EVALUACIÓN Y ENRIQUECIMIENTO ESPACIAL   ")
@@ -39,6 +50,13 @@ X_geo = datos_geo['X_geo']
 y_geo = datos_geo['y_geo']
 geojson_raw = datos_geo['geojson_raw']
 
+# Carga de la tabla base para recuperar los códigos reales de los accidentes
+df_sin = pd.read_csv(RUTA_SINIESTROS, dtype=str)
+col_acc = [c for c in df_sin.columns if 'CODIGO' in c.upper() and 'ACCIDENTE' in c.upper()][0]
+
+# Extraer y sanitizar códigos reales
+codigos_reales = [clean_id(v) for v in df_sin.loc[X_geo.index.astype(int), col_acc].values]
+
 print(f" -> Muestra cargada correctamente: {X_geo.shape[0]} registros evaluables.")
 
 # --- 3. CARGA DE MODELOS GUARDADOS ---
@@ -54,29 +72,20 @@ for nombre, path in modelos_paths.items():
     if os.path.exists(path):
         modelos_cargados[nombre] = joblib.load(path)
         print(f" -> Modelo cargado exitosamente: {nombre}")
-    else:
-        print(f" -> ADVERTENCIA: No se encontró la ruta del modelo {path}")
-
-if not modelos_cargados:
-    print("ERROR: No se pudo cargar ningún modelo. Revisa la carpeta de outputs/modelos_optimizados/.")
-    sys.exit(1)
 
 # --- 4. EVALUACIÓN Y GENERACIÓN DE MÉTRICAS ---
 print("\n[3/4] Evaluando rendimiento de los modelos sobre la muestra geocodificada...")
 resultados_lista = []
-dict_predicciones = {'CODIGO_ACCIDENTE': X_geo.index, 'Gravedad_Real': y_geo.values}
+dict_predicciones = {'CODIGO_ACCIDENTE': codigos_reales, 'Gravedad_Real': y_geo.values}
 
 for nombre, clf in modelos_cargados.items():
-    # Inferencia
     y_pred = clf.predict(X_geo)
     y_proba = clf.predict_proba(X_geo)
     
-    # Guardar predicciones para exportación posterior
     nombre_clean = nombre.replace(' ', '_').replace('(', '').replace(')', '')
     dict_predicciones[f'Pred_{nombre_clean}'] = y_pred
     dict_predicciones[f'Prob_Fatal_{nombre_clean}'] = y_proba[:, 2] if y_proba.shape[1] > 2 else y_proba[:, 1]
     
-    # Cálculo de métricas
     acc        = accuracy_score(y_geo, y_pred)
     prec_macro = precision_score(y_geo, y_pred, average='macro', zero_division=0)
     rec_macro  = recall_score(y_geo, y_pred, average='macro', zero_division=0)
@@ -91,7 +100,6 @@ for nombre, clf in modelos_cargados.items():
     except Exception:
         auc_fatal = np.nan
 
-    # Matriz de Confusión 3x3
     cm = confusion_matrix(y_geo, y_pred, labels=[0, 1, 2])
     plt.figure(figsize=(6, 5))
     sns.heatmap(cm, annot=True, fmt='d', cmap='YlGnBu',
@@ -117,30 +125,43 @@ for nombre, clf in modelos_cargados.items():
     }
     resultados_lista.append(registro)
 
-# Exportar reporte de métricas en CSV
 df_res = pd.DataFrame(resultados_lista)
 df_res.to_csv(RUTA_CSV_OUT, index=False, encoding='utf-8-sig')
-print(f" -> Tabla de métricas exportada a: {RUTA_CSV_OUT}")
 
-# --- 5. ENRIQUECIMIENTO DEL GEOJSON CON PREDICCIONES Y PROBABILIDADES ---
+# --- 5. ENRIQUECIMIENTO DEL GEOJSON CON PREDICCIONES ---
 print("\n[4/4] Integrando predicciones al archivo GeoJSON para mapeo espacial...")
 df_pred = pd.DataFrame(dict_predicciones)
-df_pred['CODIGO_ACCIDENTE'] = df_pred['CODIGO_ACCIDENTE'].astype(str).str.strip()
+
+# Exportar tabla de predicciones en CSV
 df_pred.to_csv(RUTA_PRED_CSV, index=False, encoding='utf-8-sig')
 
-mapa_pred = df_pred.set_index('CODIGO_ACCIDENTE').to_dict(orient='index')
+# Construcción de mapa de predicciones por clave limpia
+mapa_pred = {}
+for row in df_pred.to_dict(orient='records'):
+    acc_id = clean_id(row['CODIGO_ACCIDENTE'])
+    if acc_id:
+        mapa_pred[acc_id] = row
 
 etiquetas_texto = {0: 'Solo Daños', 1: 'Con Heridos', 2: 'Con Muertos'}
 
 features_enriquecidos = 0
 for feature in geojson_raw.get('features', []):
     props = feature.get('properties', {})
-    cod_acc = str(props.get('CODIGO_ACCIDENTE', '')).split('.')[0].strip()
+    
+    # Búsqueda flexible de la clave en el GeoJSON
+    cod_raw = None
+    for k, v in props.items():
+        if 'CODIGO' in k.upper() and 'ACCIDENTE' in k.upper():
+            cod_raw = v
+            break
+    if cod_raw is None:
+        cod_raw = props.get('CODIGO_ACCIDENTE')
+        
+    cod_acc = clean_id(cod_raw)
     
     if cod_acc in mapa_pred:
         info_pred = mapa_pred[cod_acc]
         
-        # Inyectar propiedades predictivas dentro de cada punto del GeoJSON
         props['PRED_RF_COD'] = int(info_pred.get('Pred_Random_Forest', -1))
         props['PRED_RF_DESC'] = etiquetas_texto.get(props['PRED_RF_COD'], 'Desconocido')
         props['PROB_FATAL_RF'] = round(float(info_pred.get('Prob_Fatal_Random_Forest', 0.0)), 4)
@@ -154,7 +175,7 @@ for feature in geojson_raw.get('features', []):
 with open(RUTA_GEOJSON_OUT, 'w', encoding='utf-8') as f:
     json.dump(geojson_raw, f, ensure_ascii=False, indent=2)
 
-print(f" -> GeoJSON enriquecido generado exitosamente con {features_enriquecidos} puntos: {RUTA_GEOJSON_OUT}")
+print(f" -> GeoJSON enriquecido generado exitosamente con {features_enriquecidos} puntos en: {RUTA_GEOJSON_OUT}")
 
 print("\n==================================================================")
 print("  ¡EVALUACIÓN ESPACIAL FINALIZADA CON ÉXITO!")
